@@ -2,9 +2,9 @@
 #include <string>
 #include <string_view>
 #include <vector>
-
 #include "geo.h"
 #include "transport_catalogue.h"
+
 namespace transport_directory{
     namespace input_reader{
         struct CommandDescription {
@@ -25,7 +25,7 @@ namespace transport_directory{
         class InputReader {
         public:    
             void ParseLine(std::string_view line);
-            void ApplyCommands(tr_dir::TransportCatalogue& catalogue) const;
+            void ApplyCommands(tr_cat::TransportCatalogue& catalogue) const;
 
         private:
             std::vector<CommandDescription> commands_;

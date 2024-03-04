@@ -1,28 +1,54 @@
 #pragma once
-#include <string_view>
-#include <functional>
+#include "geo.h"
 #include <deque>
 #include <vector>
-#include <unordered_map>
-
-#include <algorithm>
 #include <string>
-#include "geo.h"
+#include <unordered_map>
+#include <algorithm>
+#include <tuple>
 namespace transport_directory{
-    namespace tr_dir{
-        class TransportCatalogue {   
-            public:
-                void InsertRout(std::string bus,std::vector<std::string_view> rout);
-                void InsertStop(std::string bus_stop,geo::Coordinates lat_lng);
-                const std::deque<std::string>* FindRout(std::string_view bus);            
-                const geo::Coordinates* FindStop(std::string_view bus_stop);
-                std::tuple<int,int,double> GetRoutInform(std::string_view bus);
-                const std::deque<std::string_view>* GetBusThroughStop(std::string bus_stop);
+    namespace tr_cat{
+        
+        struct RouteInf{
+                int stop_number;
+                int unique_stop_number;
+                double lenght_route;
+            };
+        
+        class TransportCatalogue {
 
-            private:   
-            std::unordered_map<std::string,geo::Coordinates> stop_base;
-            std::unordered_map<std::string,std::deque<std::string>> route_base;
-            std::unordered_map<std::string,std::deque<std::string_view>> buses_through_stop;
-        };
+            struct Stop{
+              std::string name;
+              geo::Coordinates position;
+            };
+            struct Route{
+              std::string name;  
+              std::vector<Stop*> stops;  
+            };   
+           
+            public:
+                void InsertStop(const std::string& stop_name, geo::Coordinates coord);
+                void InsertRout(const std::string& bus, std::vector<std::string_view>stops_name);
+                const Route* FindRout(std::string_view bus);
+                const Stop* FindStop(std::string_view bus_stop);
+                RouteInf GetRoutInform(std::string_view bus);
+                const std::deque<std::string_view>* GetBusThroughStop(const std::string& bus_stop);
+
+
+            private:
+            template <typename T>
+            void sort_and_uniq(T &name){
+                    std::sort(name.begin(), name.end());
+                    const auto ret = std::unique(name.begin(), name.end());
+                    name.erase(ret, name.end());
+            }
+
+            std::deque<Stop> stops_;
+            std::unordered_map <std::string_view,Stop*> stops_ptr;
+            std::deque<Route> routes_;
+            std::unordered_map <std::string_view,Route*> routes_ptr;
+            std::unordered_map<std::string_view,std::deque<std::string_view>> buses_through_stop;
+            };
     }
 }
+    

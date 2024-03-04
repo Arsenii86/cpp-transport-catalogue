@@ -1,8 +1,8 @@
 #include "input_reader.h"
-
 #include <algorithm>
 #include <cassert>
 #include <iterator>
+
 namespace transport_directory{
     
     namespace input_reader{
@@ -110,13 +110,15 @@ namespace transport_directory{
         }
        
         
-        void InputReader::ApplyCommands([[maybe_unused]] tr_dir::TransportCatalogue& catalogue) const {
+        void InputReader::ApplyCommands([[maybe_unused]] tr_cat::TransportCatalogue& catalogue) const {
             for(const auto& command:commands_){
-                    if(command.command=="Stop"){
-                        catalogue.InsertStop(command.id,detail::ParseCoordinates(detail::Trim(command.description)) ); 
+                    if(command.command == "Stop"){
+                        catalogue.InsertStop(command.id, detail::ParseCoordinates(detail::Trim(command.description)) ); 
                     }
-                    if(command.command=="Bus"){
-                        catalogue.InsertRout(command.id,detail::ParseRoute(detail::Trim(command.description)));                
+            }
+            for(const auto& command:commands_){
+                    if(command.command == "Bus"){
+                        catalogue.InsertRout(command.id, detail::ParseRoute(detail::Trim(command.description)));                
                     }
             }
         }

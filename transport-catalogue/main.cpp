@@ -1,6 +1,5 @@
 #include <iostream>
 #include <string>
-
 #include "input_reader.h"
 #include "stat_reader.h"
 
@@ -8,7 +7,7 @@ using namespace std;
 
 int main() {
     using namespace transport_directory;
-    tr_dir::TransportCatalogue catalogue;
+    tr_cat::TransportCatalogue catalogue;
 
     int base_request_count;
     cin >> base_request_count >> ws;
