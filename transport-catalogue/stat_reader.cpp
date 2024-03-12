@@ -13,7 +13,7 @@ namespace transport_directory{
 		auto root_iter = catalogue_iter -> FindRout(bus_name);
                 if(root_iter != nullptr){
                     tr_cat::RouteInf inform = catalogue_iter -> GetRoutInform(bus_name);
-                    output << "Bus " << bus_name << ": " << inform.stop_number << " stops on route, " << inform.unique_stop_number << " unique stops, " << std::setprecision(6) << inform.lenght_route << " route length" << std::endl;
+                    output << "Bus " << bus_name << ": " << inform.stop_number << " stops on route, " << inform.unique_stop_number << " unique stops, " << std::setprecision(6) << inform.route_road_lenght << " route length, " <<inform.curvature<<" curvature"<< std::endl;
                     }
                 else{
                     output << "Bus " << bus_name << ": not found" << std::endl;

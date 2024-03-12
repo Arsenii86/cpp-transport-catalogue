@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iterator>
+#include <iostream>
 
 namespace transport_directory{
     
@@ -62,7 +63,7 @@ namespace transport_directory{
                 return result;
             }
 
-            /**
+            /*
              * Парсит маршрут.
              * Для кольцевого маршрута (A>B>C>A) возвращает массив названий остановок [A,B,C,A]
              * Для некольцевого маршрута (A-B-C-D) возвращает массив названий остановок [A,B,C,D,C,B,A]
@@ -113,14 +114,39 @@ namespace transport_directory{
         void InputReader::ApplyCommands([[maybe_unused]] tr_cat::TransportCatalogue& catalogue) const {
             for(const auto& command:commands_){
                     if(command.command == "Stop"){
-                        catalogue.InsertStop(command.id, detail::ParseCoordinates(detail::Trim(command.description)) ); 
+                        auto stop_inform = detail::Split(command.description, ',');                        
+                        geo::Coordinates stop_coord = {std::stod(std::string(stop_inform[0])), std::stod(std::string(stop_inform[1]))};
+                        catalogue.InsertStop(command.id,stop_coord); 
                     }
             }
             for(const auto& command:commands_){
-                    if(command.command == "Bus"){
-                        catalogue.InsertRout(command.id, detail::ParseRoute(detail::Trim(command.description)));                
+                    if(command.command == "Stop"){
+                        auto stop_inform = detail::Split(command.description, ',');
+                        int stop_inf_size = static_cast<int>(stop_inform.size());
+                        if(stop_inf_size > 2){    
+                            std::unordered_map<std::string_view, std::string_view> stop_dist;
+                            for (int i = 2; i < stop_inf_size; ++i) {
+                                auto m_pos = stop_inform[i].find('m'); 
+                                auto gap_pos = stop_inform[i].find(' ');
+                                     gap_pos = stop_inform[i].find(' ',gap_pos+1);                      
+                                auto stop_name_pos = gap_pos+1 ;
+                                auto stop_name = stop_inform[i].substr(stop_name_pos) ; 
+                                auto dist_value = stop_inform[i].substr(0, m_pos) ;
+                                stop_dist[stop_name] = dist_value;
+                                
+                            }                            
+                        catalogue.InsertStopDist(command.id, stop_dist);
+                        }
                     }
             }
-        }
-    }
-}
+    
+    
+            for(const auto& command:commands_){
+                    if(command.command == "Bus"){
+                        catalogue.InsertRout(command.id, detail::ParseRoute(detail::Trim(command.description)));  
+                    }
+            }
+          }
+      }
+   }
+                                                             
