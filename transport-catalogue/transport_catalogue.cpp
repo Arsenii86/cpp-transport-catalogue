@@ -13,30 +13,27 @@ namespace transport_directory{
         }
         
        
-        void TransportCatalogue::InsertStopDist(const std::string& stop_name, std::unordered_map <std::string_view, std::string_view>& stop_dist){
-            auto stop_first_ptr = stops_ptr[stop_name];
-            for (const auto& [stop_second, distance]: stop_dist ){                
-                auto stop_second_ptr = stops_ptr.at(std::string(stop_second));
-                int dist=std::stoi(std::string(distance));            
-                distance_between_stop[{stop_first_ptr,stop_second_ptr}] = dist; 
-                
-            }  
+        void TransportCatalogue::InsertStopDist(const std::string& stop_from,const std::string_view stop_to,const std::string_view stop_dist){
+            auto stop_first_ptr = stops_ptr.at(stop_from);
+            auto stop_second_ptr = stops_ptr.at(std::string(stop_to));
+            int dist=std::stoi(std::string(stop_dist)); 
+            distance_between_stop[{stop_first_ptr,stop_second_ptr}] = dist;            
         };
         
         
-        void TransportCatalogue::InsertRout(const std::string& bus, std::vector<std::string_view> stops_name){
+        void TransportCatalogue::InsertRoute(const std::string& bus, const std::vector<std::string_view>& stops_name){
             Route rt;
             rt.name = bus;
             routes_.push_back(std::move(rt)); 
             for(const auto bus_stop:stops_name){         
                 routes_.back().stops.push_back(stops_ptr[bus_stop]);
-                buses_through_stop[std::string_view(stops_ptr.at(bus_stop) -> name)].push_back(std::string_view(routes_.back().name));
+                buses_through_stop[std::string_view(stops_ptr.at(bus_stop) -> name)].insert(routes_.back().name);
             }
 
             routes_ptr[std::string_view(routes_.back().name)] = &routes_.back();
         };
 
-        const TransportCatalogue::Stop* TransportCatalogue::FindStop(std::string_view bus_stop){
+        const TransportCatalogue::Stop* TransportCatalogue::FindStop(const std::string_view bus_stop){
             try {
                 return stops_ptr.at(bus_stop);
             }
@@ -45,7 +42,7 @@ namespace transport_directory{
             }
         };
 
-        const TransportCatalogue::Route* TransportCatalogue::FindRout(std::string_view bus){
+        const TransportCatalogue::Route* TransportCatalogue::FindRoute(const std::string_view bus){
                 try {
                     return routes_ptr.at(bus);
                     }
@@ -53,11 +50,20 @@ namespace transport_directory{
                     return nullptr;        
                 }
          };
+        double TransportCatalogue::GetRoadDist(const std::string_view stop_from, const std::string_view stop_to){
+            double road_dist=.0;
+            try{                        
+                road_dist= distance_between_stop.at({stops_ptr.at(stop_from), stops_ptr.at(stop_to)});
+                    }
+            catch ( std::out_of_range& ex){                        
+                road_dist= distance_between_stop.at({stops_ptr.at(stop_to), stops_ptr.at(stop_from)});
+                    }
+            return road_dist;
+};
 
 
-
-        RouteInf TransportCatalogue::GetRoutInform(std::string_view bus){
-                auto route_ptr = TransportCatalogue::FindRout(bus);
+        RouteInf TransportCatalogue::GetRoutInform(const std::string_view bus){
+                auto route_ptr = TransportCatalogue::FindRoute(bus);
                 int stop_number = route_ptr -> stops.size();
                 int unique_stop = 0; 
                 double geo_lenght = .0;
@@ -75,12 +81,7 @@ namespace transport_directory{
                 }
                 //поиск действительной длины маршрута 
                 for(int i = 0, j = 1; j < route_stop.size(); i++, j++){
-                    try{                        
-                        road_lenght += distance_between_stop.at({stops_ptr.at(route_stop[i]), stops_ptr.at(route_stop[j])});
-                    }
-                    catch ( std::out_of_range& ex){                        
-                        road_lenght += distance_between_stop.at({stops_ptr.at(route_stop[j]), stops_ptr.at(route_stop[i])});
-                    }
+                    road_lenght +=GetRoadDist(route_stop[i],route_stop[j]);
                 }
                    curvature=road_lenght/geo_lenght ;
             
@@ -90,16 +91,14 @@ namespace transport_directory{
                 return RouteInf{stop_number, unique_stop, geo_lenght, road_lenght, curvature};
             };
 
-        const std::deque<std::string_view>* TransportCatalogue::GetBusThroughStop(const std::string& bus_stop){  
+        const std::set<std::string_view> * TransportCatalogue::GetBusThroughStop(const std::string& bus_stop){  
                     try{
                         buses_through_stop.at(bus_stop);
                     }
                     catch ( std::out_of_range& ex){
                         return nullptr;        
                     }
-                    auto &buses = buses_through_stop.at(bus_stop);
-                    sort_and_uniq(buses);            
-                    return &buses;
+                    return &(buses_through_stop.at(bus_stop));                    
         };
     }
 }

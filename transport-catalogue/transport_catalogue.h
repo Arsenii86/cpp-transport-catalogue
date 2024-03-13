@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <map>
+#include <set>
 #include <algorithm>
 #include <utility>
 namespace transport_directory{
@@ -41,12 +41,13 @@ namespace transport_directory{
             public:
                
                 void InsertStop(const std::string& stop_name, geo::Coordinates& coord);
-                void InsertStopDist(const std::string& stop_name, std::unordered_map <std::string_view, std::string_view>& stop_dist);
-                void InsertRout(const std::string& bus, std::vector<std::string_view> stops_name);
-                const Route* FindRout(std::string_view bus);
-                const Stop* FindStop(std::string_view bus_stop);
-                RouteInf GetRoutInform(std::string_view bus);
-                const std::deque<std::string_view>* GetBusThroughStop(const std::string& bus_stop); 
+                void InsertStopDist(const std::string& stop_from,const std::string_view stop_to,const std::string_view stop_dist);
+                double GetRoadDist(const std::string_view stop_from, const std::string_view stop_to);
+                void InsertRoute(const std::string& bus,const std::vector<std::string_view>& stops_name);
+                const Route* FindRoute(const std::string_view bus);
+                const Stop* FindStop(const std::string_view bus_stop);
+                RouteInf GetRoutInform(const std::string_view bus);
+                const std::set<std::string_view>* GetBusThroughStop(const std::string& bus_stop); 
 
             private:
             
@@ -61,7 +62,7 @@ namespace transport_directory{
             std::unordered_map <std::string_view,Stop*> stops_ptr;
             std::deque<Route> routes_;
             std::unordered_map <std::string_view,Route*> routes_ptr;
-            std::unordered_map <std::string_view,std::deque<std::string_view>> buses_through_stop;
+            std::unordered_map <std::string_view,std::set<std::string_view>> buses_through_stop;
             std::unordered_map <std::pair<Stop*,Stop*>, int, MapHasher> distance_between_stop; 
             };
         

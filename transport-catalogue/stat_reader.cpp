@@ -10,7 +10,7 @@ namespace transport_directory{
     namespace stat_reader{
 	void PrintBusStat(const std::string& bus_name,const tr_cat::TransportCatalogue& catalogue, std::ostream& output){
 		tr_cat::TransportCatalogue* catalogue_iter = const_cast<tr_cat::TransportCatalogue*>(&catalogue); 
-		auto root_iter = catalogue_iter -> FindRout(bus_name);
+		auto root_iter = catalogue_iter -> FindRoute(bus_name);
                 if(root_iter != nullptr){
                     tr_cat::RouteInf inform = catalogue_iter -> GetRoutInform(bus_name);
                     output << "Bus " << bus_name << ": " << inform.stop_number << " stops on route, " << inform.unique_stop_number << " unique stops, " << std::setprecision(6) << inform.route_road_lenght << " route length, " <<inform.curvature<<" curvature"<< std::endl;
@@ -30,8 +30,8 @@ namespace transport_directory{
                         }
                         else{
                             output << "Stop " << stop_name << ": buses";
-                            for(auto iter = begin(*iter_buses); iter != end(*iter_buses); iter++){
-                                output << ' ' << std::string(*iter);
+                            for(auto iter:*iter_buses){
+                                output << ' ' << std::string(iter);
                             }
                             output << std::endl;
                         }

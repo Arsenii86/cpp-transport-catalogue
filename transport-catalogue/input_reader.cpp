@@ -124,18 +124,15 @@ namespace transport_directory{
                         auto stop_inform = detail::Split(command.description, ',');
                         int stop_inf_size = static_cast<int>(stop_inform.size());
                         if(stop_inf_size > 2){    
-                            std::unordered_map<std::string_view, std::string_view> stop_dist;
                             for (int i = 2; i < stop_inf_size; ++i) {
                                 auto m_pos = stop_inform[i].find('m'); 
                                 auto gap_pos = stop_inform[i].find(' ');
                                      gap_pos = stop_inform[i].find(' ',gap_pos+1);                      
                                 auto stop_name_pos = gap_pos+1 ;
-                                auto stop_name = stop_inform[i].substr(stop_name_pos) ; 
-                                auto dist_value = stop_inform[i].substr(0, m_pos) ;
-                                stop_dist[stop_name] = dist_value;
-                                
-                            }                            
-                        catalogue.InsertStopDist(command.id, stop_dist);
+                                auto stop_name =stop_inform[i].substr(stop_name_pos) ; 
+                                auto dist_value =stop_inform[i].substr(0,m_pos) ;
+                                catalogue.InsertStopDist(command.id,stop_name, dist_value);
+                            } 
                         }
                     }
             }
@@ -143,7 +140,7 @@ namespace transport_directory{
     
             for(const auto& command:commands_){
                     if(command.command == "Bus"){
-                        catalogue.InsertRout(command.id, detail::ParseRoute(detail::Trim(command.description)));  
+                        catalogue.InsertRoute(command.id, detail::ParseRoute(detail::Trim(command.description)));  
                     }
             }
           }
