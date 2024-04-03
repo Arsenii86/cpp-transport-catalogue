@@ -1,32 +1,13 @@
 #include <iostream>
+#include <sstream>
 #include <string>
-#include "input_reader.h"
-#include "stat_reader.h"
+#include "json_reader.h"
+#include "transport_catalogue.h"
+#include "request_handler.h"
 
-using namespace std;
 
-int main() {
-    using namespace transport_directory;
-    tr_cat::TransportCatalogue catalogue;
-
-    int base_request_count;
-    cin >> base_request_count >> ws;
-
-    {
-        input_reader::InputReader reader;
-        for (int i = 0; i < base_request_count; ++i) {
-            string line;
-            getline(cin, line);
-            reader.ParseLine(line);
-        }
-        reader.ApplyCommands(catalogue);
-    }
-
-    int stat_request_count;
-    cin >> stat_request_count >> ws;
-    for (int i = 0; i < stat_request_count; ++i) {
-        string line;
-        getline(cin, line);
-        stat_reader::ParseAndPrintStat(catalogue, line, cout);
-    }
+int main() {   
+    transport_directory::tr_cat::TransportCatalogue catalogue;    
+    json::Document req_inf= req_hand::query_processor(std::cin,catalogue);
+    json_reader::out_json_file(req_inf, std::cout);
 }

@@ -7,7 +7,7 @@ namespace transport_directory{
     namespace tr_cat{       
         
         void TransportCatalogue::InsertStop(const std::string& stop_name, geo::Coordinates& coord){    
-            stops_.push_back(std::move(Stop {stop_name, coord}));
+            stops_.push_back(std::move(domain::Stop {stop_name, coord}));
             stops_ptr[std::string_view(stops_.back().name)] = &stops_.back(); 
             
         }
@@ -22,7 +22,7 @@ namespace transport_directory{
         
         
         void TransportCatalogue::InsertRoute(const std::string& bus, const std::vector<std::string_view>& stops_name){
-            Route rt;
+            domain::Route rt;
             rt.name = bus;
             routes_.push_back(std::move(rt)); 
             for(const auto bus_stop:stops_name){         
@@ -33,7 +33,7 @@ namespace transport_directory{
             routes_ptr[std::string_view(routes_.back().name)] = &routes_.back();
         };
 
-        const TransportCatalogue::Stop* TransportCatalogue::FindStop(const std::string_view bus_stop){
+        const domain::Stop* TransportCatalogue::FindStop(const std::string_view bus_stop){
             try {
                 return stops_ptr.at(bus_stop);
             }
@@ -42,7 +42,7 @@ namespace transport_directory{
             }
         };
 
-        const TransportCatalogue::Route* TransportCatalogue::FindRoute(const std::string_view bus){
+        const domain::Route* TransportCatalogue::FindRoute(const std::string_view bus){
                 try {
                     return routes_ptr.at(bus);
                     }
@@ -80,7 +80,7 @@ namespace transport_directory{
                     }
                 }
                 //поиск действительной длины маршрута 
-                for(int i = 0, j = 1; j < route_stop.size(); i++, j++){
+                for(int i = 0, j = 1; j < static_cast<int>(route_stop.size()); i++, j++){
                     road_lenght +=GetRoadDist(route_stop[i],route_stop[j]);
                 }
                    curvature=road_lenght/geo_lenght ;
