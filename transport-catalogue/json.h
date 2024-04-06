@@ -15,7 +15,6 @@ class Node;
 // Сохраните объявления Dict и Array без изменения
     
 using Dict = std::map<std::string, Node>;
-// using Dict = std::vector <std::pair<std::string, Node>>;
 using Array = std::vector<Node>;
 using Number = std::variant<int, double>;  
     

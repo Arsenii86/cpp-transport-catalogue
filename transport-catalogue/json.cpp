@@ -58,8 +58,7 @@ std::string LoadString(std::istream& input) {
             s.push_back(ch);
         }
         ++it;
-    }
-    //std::cerr<<s<<std::endl;
+    }     
     return s;
 }    
     
