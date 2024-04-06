@@ -166,6 +166,63 @@ void Circle::RenderObject(const RenderContext& context) const{
         }
         out<<"</svg>"sv;
     }; 
+    
+    std::string RequestNotFound(bool& is_first, int request_id){
+		std::string info; 
+		if(!is_first){ 
+            info+=','; 
+        } 
+        is_first=false; 
+        info+="\n{\n\"request_id\": "+std::to_string(request_id)+',' 
+        +"\n\"error_message\": \"not found\"\n}"; 
+        return info;
+    }  
+    
+    std::string StopInform(bool& is_first,const std::set<std::string_view>* bus_thr_stop, int request_id){
+        std::string info;
+    	if(!is_first){
+            info+=','; 
+        } 
+        info+="\n{\n\"buses\": [\n";
+        bool is_first_=true; 
+        if (bus_thr_stop!=nullptr){ 
+            for(const auto& bus:*bus_thr_stop){ 
+                if (!is_first_) info+", "; 
+                info+='\"'+std::string{bus}+'\"'; 
+                is_first_=false; 
+             } 
+        }
+        is_first=false; 
+        info+="\n],\n\"request_id\": "+std::to_string(request_id)+"\n}";
+        return info;
+    }
+    
+    
+   std::string BusInform(bool& is_first,int stop_number,int unique_stop_number,double route_road_lenght,double curvature, int request_id){
+        std::string info;
+    	if(!is_first){
+            info+=','; 
+        } 
+        is_first=false; 
+        info+="\n{\n\"curvature\": "+std::to_string(curvature)+','
+                               +"\n\"request_id\": "+std::to_string(request_id)+','
+                               +"\n\"route_length\": "+std::to_string(route_road_lenght)+','
+                               +"\n\"stop_count\": "+std::to_string(stop_number)+','
+                               +"\n\"unique_stop_count\": "+std::to_string(unique_stop_number)
+                               +"\n}";
+        return info;
+    }
+    
+    std::string MapInform(bool& is_first, std::stringstream& svg_file, int request_id){
+        std::string info; 
+        const std::string& svg_string=svg_file.str();
+    	if(!is_first){
+            info+=','; 
+        } 
+        is_first=false; 
+        info+="\n{\n\"map\": "+svg_string+", \n\"request_id\": " +std::to_string(request_id)+"\n}";
+        return info;
+    }    
 }  // namespace svg
 
 namespace shapes {

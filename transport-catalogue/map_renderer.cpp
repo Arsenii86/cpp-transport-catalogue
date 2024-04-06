@@ -1,5 +1,101 @@
 #include "map_renderer.h"
 namespace mp_rend{
+    
+    void SetAndRenderMap(const json::Dict& requests , transport_directory::tr_cat::TransportCatalogue& catalogue , const std::vector<std::string_view>& stops_all ,const std::vector<std::pair<std::string,bool>>& bus_all , std::ostream& output_svg ){
+    using namespace std::literals;    
+    mp_rend::MapRenderer MR;       
+    if (requests.at("render_settings"s).IsMap()){   
+       const json::Dict& render_st=requests.at("render_settings"s).AsMap();
+       for(const auto& [setting,value]:render_st){
+            if (setting=="width"){
+                double width=value.AsDouble();
+                MR.SetWidth(width);
+            }
+            else if (setting=="height"){
+                double height=value.AsDouble();
+                MR.SetHeight(height);
+            }
+            else if (setting=="padding"){
+                double padding=value.AsDouble();
+                MR.SetPadding(padding);
+            }
+            else if (setting=="line_width"){
+                double line_width=value.AsDouble();
+                MR.SetLineWidth(line_width);
+            }
+            else if (setting=="stop_radius"){
+                double stop_radius=value.AsDouble();
+                MR.SetStopRadius(stop_radius);
+            }
+            else if (setting=="underlayer_width"){
+                double underlayer_width=value.AsDouble();
+                MR.SetUnderlayerWidth(underlayer_width);
+            }
+            else if (setting=="bus_label_font_size"){
+                int bus_label_font_size=value.AsInt();
+                MR.SetBusLabelFontSize(bus_label_font_size);
+            }
+            else if (setting=="stop_label_font_size"){
+                int stop_label_font_size=value.AsInt();
+                MR.SetStopLabelFontSize(stop_label_font_size);
+            }
+            else if (setting=="bus_label_offset"){
+                const auto values_arr=value.AsArray();
+                double a=values_arr[0].AsDouble();
+                double b=values_arr[1].AsDouble();
+                svg::Point point(a,b);
+                MR.SetBusLabelOffset(point);
+            }
+            else if (setting=="stop_label_offset"){
+                const auto values_arr=value.AsArray();
+                double a=values_arr[0].AsDouble();
+                double b=values_arr[1].AsDouble();
+                svg::Point point(a,b);
+                MR.SetStopLabelOffset(point);
+            }	
+            else if (setting=="underlayer_color"){
+                svg::Color  color;
+                color=json_reader::ToRgbOrRgba(value);			
+                MR.SetUnderlayerColor(color);
+            }
+            else if (setting=="color_palette"){
+                const auto values_arr=value.AsArray();                           
+                std::vector <svg::Color> color_palette;
+                for(const auto& val_arr:values_arr){
+                    svg::Color  color;
+                    color=json_reader::ToRgbOrRgba(val_arr);
+                    color_palette.push_back(color);                
+                }
+                MR.SetColorPalette(color_palette);
+            }
+        } 
+    }   
+        
+        std::map<std::string ,geo::Coordinates> uniq_stop_in_all_routes;
+        std::vector<geo::Coordinates> geo_coords;        
+        for(const auto& stop:stops_all){
+            if (catalogue.GetBusThroughStop(std::string(stop)) != nullptr){
+                uniq_stop_in_all_routes[std::string(stop)]=catalogue.FindStop(stop)->position;;
+                geo::Coordinates stop_cord = catalogue.FindStop(stop)->position;
+                geo_coords.push_back(stop_cord);
+            }
+        }
+        
+        //Заполнения словаря автобус - маршрут,для передачи в MapRenderer MR() с последующей отрисовкой
+        std::map<std::string,std::pair<const domain::Route*,bool>> routs_to_drow;/*Не хочу по указателю, а то можно ненароком изменить базу.Хотя все равно внутри Route указатель на остановку в базе....поэтому по указателю*/
+        for (const auto& [bus,is_round]:bus_all){
+            if (catalogue.FindRoute(bus)!=nullptr){
+                routs_to_drow[bus]={catalogue.FindRoute(bus),is_round};
+            }
+        }                   
+        
+        MR.SetSphereProjector(geo_coords);        
+        //теперь иаршруты с остановками routs_to_drow можно передавать в MapRenderer MR для отрисовки
+        
+        MR.DrowMap(routs_to_drow,uniq_stop_in_all_routes, output_svg);
+        
+    }
+    
      void MapRenderer::SetWidth(double width){
            width_=width;          
        } 

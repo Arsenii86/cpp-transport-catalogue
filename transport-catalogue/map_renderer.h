@@ -9,6 +9,9 @@
 #include <vector>
 #include <map>
 #include "domain.h"
+#include "json_reader.h"
+#include "transport_catalogue.h"
+
 namespace mp_rend{
     
 inline const double EPSILON = 1e-6;
@@ -139,7 +142,7 @@ class MapRenderer{
        void DrowMap(std::map<std::string,std::pair<const domain::Route*,bool>> routs_to_drow, std::map<std::string,geo::Coordinates> uniq_stop_in_all_routes, std::ostream& out) const;
    };
     
-    
+    void SetAndRenderMap(const json::Dict& requests , transport_directory::tr_cat::TransportCatalogue& catalogue , const std::vector<std::string_view>& stops_all ,const std::vector<std::pair<std::string,bool>>& bus_all , std::ostream& output_svg );
     
     
     

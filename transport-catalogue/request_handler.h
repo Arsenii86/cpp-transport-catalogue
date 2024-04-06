@@ -8,7 +8,7 @@
 #include "json_reader.h"
 #include "transport_catalogue.h"
 #include "geo.h"
-
+//#include "svg.h"
 namespace req_hand{
 json::Document query_processor(std::istream& input,transport_directory::tr_cat::TransportCatalogue& catalogue);
 }///закрытие пространства имен

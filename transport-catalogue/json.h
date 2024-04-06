@@ -25,19 +25,15 @@ class ParsingError : public std::runtime_error {
 public:
     using runtime_error::runtime_error;
 };
-
-class Node {
+;
+    
+class Node:public std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string> {
 public:   
     using Value = std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>;
     
-    Node() = default;
-    Node(std::nullptr_t): value_(nullptr) {};
-    Node(const Array& value): value_(value) {};
-    Node(const Dict& value): value_(value) {};
-    Node(const  bool& value): value_(value) {};
-    Node(const  int& value): value_(value) {};
-    Node(const  double& value): value_(value) {};
-    Node(const  std::string& value): value_(value) {};
+    Node() = default;    
+    Node(const Value& value): value_(value) {};
+    
     
     const Value& GetValue() const;    
     

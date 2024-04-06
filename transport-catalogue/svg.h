@@ -8,6 +8,10 @@
 #include <vector>
 #include <optional>
 #include <variant>
+#include <set>
+//#include "transport_catalogue.h"
+//#include "json.h"
+#include <sstream>
 
 namespace svg {
 using namespace std::literals;
@@ -304,8 +308,16 @@ public:
     // Выводит в ostream svg-представление документа
     void Render(std::ostream& out) const;   
     
-};
-
+};  
+    
+    std::string RequestNotFound(bool& is_first, int request_id);
+    
+    std::string StopInform(bool& is_first,const std::set<std::string_view>* bus_thr_stop, int request_id);
+    
+    std::string BusInform(bool& is_first,int stop_number,int unique_stop_number,double route_road_lenght,double curvature, int request_id);
+    
+    std::string MapInform(bool& is_first, std::stringstream& svg_file, int request_id);
+    
 }  // namespace svg
 
 namespace shapes {
@@ -348,3 +360,9 @@ class Snowman: public svg::Drawable{
 };
 
 }  
+
+
+
+
+
+
