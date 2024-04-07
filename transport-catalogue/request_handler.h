@@ -10,5 +10,5 @@
 #include "geo.h"
 //#include "svg.h"
 namespace req_hand{
-json::Document QueryProcessor(std::istream& input,transport_directory::tr_cat::TransportCatalogue& catalogue);
+std::string QueryProcessor(std::istream& input,transport_directory::tr_cat::TransportCatalogue& catalogue);
 }

@@ -25,16 +25,14 @@ public:
     using runtime_error::runtime_error;
 };
 ;
+using Value = std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>;
     
-class Node:public std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string> {
+class Node:public Value {
 public:   
-    using Value = std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>;
     
-    Node() = default;    
-    Node(const Value& value): value_(value) {};
+    Node(const Value& value): value_(value) {};   
     
-    
-    const Value& GetValue() const;    
+    const Value& GetValue() const;  
     
     bool IsInt() const;
     bool IsDouble() const;

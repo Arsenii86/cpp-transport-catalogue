@@ -229,7 +229,7 @@ Node LoadNode(istream& input) {
 
 }  // namespace    
     
-const Node::Value& Node::GetValue() const { return value_; }   
+const Value& Node::GetValue() const { return value_; }   
 
     bool Node::IsInt() const{
       if (holds_alternative<int>(value_)) return true;

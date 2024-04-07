@@ -9,10 +9,11 @@
 #include <vector>
 #include <map>
 #include "domain.h"
-#include "json_reader.h"
 #include "transport_catalogue.h"
 
 namespace mp_rend{
+    using RoutesInfo=std::map<std::string,std::pair<const domain::Route*,bool>>;
+    using StopsInfo=std::map<std::string, geo::Coordinates>;
     
 inline const double EPSILON = 1e-6;
 inline bool IsZero(double value) {
@@ -88,9 +89,6 @@ private:
     double zoom_coeff_ = 0;
 };
     
-    
-    
-    
 class MapRenderer{
         double width_=1200.0;
         double height_=1200.0;
@@ -108,7 +106,15 @@ class MapRenderer{
                                                  svg::Rgb{255, 160, 0},
                                                 "red"
                                                 }; 
-        SphereProjector SpPr;        
+        SphereProjector SpPr;   
+    
+        void DrawRouteLine(svg::Document& doc, RoutesInfo& routs_to_drow) const;
+    
+        void DrawRouteName(svg::Document& doc, RoutesInfo& routs_to_drow)const;
+    
+        void DrawStopPoint(svg::Document& doc, StopsInfo& uniq_stop_in_all_routes)const;
+    
+        void DrawStopName(svg::Document& doc, StopsInfo& uniq_stop_in_all_routes)const;
        
     public:   
        MapRenderer()=default; 
@@ -139,10 +145,10 @@ class MapRenderer{
         
        void SetSphereProjector(std::vector<geo::Coordinates> geo_coords); 
         
-       void DrowMap(std::map<std::string,std::pair<const domain::Route*,bool>> routs_to_drow, std::map<std::string,geo::Coordinates> uniq_stop_in_all_routes, std::ostream& out) const;
+       void DrawMap(RoutesInfo& routs_to_drow, StopsInfo& uniq_stop_in_all_routes, std::string& out) const;
    };
     
-    void SetAndRenderMap(const json::Dict& requests , transport_directory::tr_cat::TransportCatalogue& catalogue , const std::vector<std::string_view>& stops_all ,const std::vector<std::pair<std::string,bool>>& bus_all , std::ostream& output_svg );
+    void RenderMap(mp_rend::MapRenderer& MR,transport_directory::tr_cat::TransportCatalogue& catalogue, const std::vector<std::string_view>& stops_all ,const std::vector<std::pair<std::string,bool>>& bus_all , std::string& output_svg );
     
     
     

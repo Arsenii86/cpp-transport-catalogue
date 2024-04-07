@@ -212,15 +212,14 @@ void Circle::RenderObject(const RenderContext& context) const{
                                +"\n}";
         return info;
     }
-    
-    std::string MapInform(bool& is_first, std::stringstream& svg_file, int request_id){
-        std::string info; 
-        const std::string& svg_string=svg_file.str();
+     
+    std::string MapInform(bool& is_first, const std::string& svg_file, int request_id){
+        std::string info;         
     	if(!is_first){
             info+=','; 
         } 
         is_first=false; 
-        info+="\n{\n\"map\": "+svg_string+", \n\"request_id\": " +std::to_string(request_id)+"\n}";
+        info+="\n{\n\"map\": "+svg_file+", \n\"request_id\": " +std::to_string(request_id)+"\n}";
         return info;
     }    
 }  // namespace svg

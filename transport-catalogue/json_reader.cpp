@@ -1,12 +1,8 @@
 #include "json_reader.h"
 namespace json_reader{
-    json::Document read_json_file(std::istream& input){
-        return    json::Load(input); 
-    }  
+    
    
-    void out_json_file(const json::Document& doc, std::ostream& output){
-        json::Print(doc, output);
-    }
+    
     
     svg::Color ToRgbOrRgba(json:: Node node){
 		svg::Color  color;
@@ -94,10 +90,10 @@ namespace json_reader{
     }
     
     
-     void GetStatInfo(const json::Dict& requests, transport_directory::tr_cat::TransportCatalogue& catalogue, std::stringstream& svg_file, std::ostream& output){
+     void GetStatInfo(const json::Dict& requests, transport_directory::tr_cat::TransportCatalogue& catalogue, std::string& svg_file, std::string& output_temp){
         using namespace std::literals;
         if (requests.at("stat_requests"s).IsArray()){
-            output<<'[';
+           output_temp+='[';
             const json::Array& stat_requests = requests.at("stat_requests"s).AsArray();
             bool is_first = true;
             for (const auto& node_sr:stat_requests){
@@ -107,10 +103,10 @@ namespace json_reader{
                        const int request_id = requests_sr.at("id"s).AsInt();                       
                        if (catalogue.FindStop(stop_name) != nullptr){ 
                            const std::set<std::string_view>* bus_thr_stop = catalogue.GetBusThroughStop(stop_name);  
-                           output << svg::StopInform(is_first,bus_thr_stop,request_id);
+                           output_temp+= svg::StopInform(is_first,bus_thr_stop,request_id);
                            }                        
                        else {
-                           output << svg::RequestNotFound(is_first, request_id);
+                           output_temp+=svg::RequestNotFound(is_first, request_id);
                        }                       
                    }             
                    if(requests_sr.at("type"s).AsString() == "Bus"s ){
@@ -122,20 +118,135 @@ namespace json_reader{
                             int unique_stop_number = route_inf.unique_stop_number;                
                             double route_road_lenght = route_inf.route_road_lenght;
                             double curvature = route_inf.curvature;
-                            output<<svg::BusInform(is_first, stop_number, unique_stop_number, route_road_lenght, curvature, request_id);
+                            output_temp += svg::BusInform(is_first, stop_number, unique_stop_number, route_road_lenght, curvature, request_id);
                           }
                           else { 
-                            output<<svg::RequestNotFound(is_first, request_id);
+                            output_temp += svg::RequestNotFound(is_first, request_id);
                           }                       
                      }                    
                     if(requests_sr.at("type"s).AsString() == "Map"s ){
                           const int request_id = requests_sr.at("id"s).AsInt();
-                            output << svg::MapInform(is_first, svg_file, request_id);            
+                            output_temp += svg::MapInform(is_first, svg_file, request_id);            
                      }                
                 }           
         }
-        output << "\n]";
+        output_temp += "\n]";
     }  
+    
+    
+    mp_rend::MapRenderer SetSettingsForRenderMap(const json::Dict& requests ){
+    using namespace std::literals; 
+    mp_rend::MapRenderer MR;
+    if (requests.at("render_settings"s).IsMap()){   
+       const json::Dict& render_st=requests.at("render_settings"s).AsMap();
+       for(const auto& [setting,value]:render_st){
+            if (setting=="width"){
+                double width=value.AsDouble();
+                MR.SetWidth(width);
+            }
+            else if (setting=="height"){
+                double height=value.AsDouble();
+                MR.SetHeight(height);
+            }
+            else if (setting=="padding"){
+                double padding=value.AsDouble();
+                MR.SetPadding(padding);
+            }
+            else if (setting=="line_width"){
+                double line_width=value.AsDouble();
+                MR.SetLineWidth(line_width);
+            }
+            else if (setting=="stop_radius"){
+                double stop_radius=value.AsDouble();
+                MR.SetStopRadius(stop_radius);
+            }
+            else if (setting=="underlayer_width"){
+                double underlayer_width=value.AsDouble();
+                MR.SetUnderlayerWidth(underlayer_width);
+            }
+            else if (setting=="bus_label_font_size"){
+                int bus_label_font_size=value.AsInt();
+                MR.SetBusLabelFontSize(bus_label_font_size);
+            }
+            else if (setting=="stop_label_font_size"){
+                int stop_label_font_size=value.AsInt();
+                MR.SetStopLabelFontSize(stop_label_font_size);
+            }
+            else if (setting=="bus_label_offset"){
+                const auto values_arr=value.AsArray();
+                double a=values_arr[0].AsDouble();
+                double b=values_arr[1].AsDouble();
+                svg::Point point(a,b);
+                MR.SetBusLabelOffset(point);
+            }
+            else if (setting=="stop_label_offset"){
+                const auto values_arr=value.AsArray();
+                double a=values_arr[0].AsDouble();
+                double b=values_arr[1].AsDouble();
+                svg::Point point(a,b);
+                MR.SetStopLabelOffset(point);
+            }	
+            else if (setting=="underlayer_color"){
+                svg::Color  color;
+                color=json_reader::ToRgbOrRgba(value);			
+                MR.SetUnderlayerColor(color);
+            }
+            else if (setting=="color_palette"){
+                const auto values_arr=value.AsArray();                           
+                std::vector <svg::Color> color_palette;
+                for(const auto& val_arr:values_arr){
+                    svg::Color  color;
+                    color=json_reader::ToRgbOrRgba(val_arr);
+                    color_palette.push_back(color);                
+                }
+                MR.SetColorPalette(color_palette);
+            }
+        } 
+    }
+        return MR;
+    };
+    
+   
+    std::string ReadAndProcessJsonFile(std::istream& input,transport_directory::tr_cat::TransportCatalogue& catalogue){
+         using namespace std::literals;  
+        //Создание json документа
+        json::Document doc=json::Load(input);
+        
+        json::Node node_root = doc.GetRoot();
+        if(node_root.IsMap()){
+            const json::Dict& requests = node_root.AsMap(); 
+            std::vector<std::string_view> stops_all;
+            std::vector<std::pair<std::string,bool>> bus_all;
+            
+            FillingCatalog  (requests ,catalogue ,stops_all ,bus_all); 
+            
+            mp_rend::MapRenderer MR=json_reader::SetSettingsForRenderMap(requests);
+
+            std::string output_svg;////////строка длявывода svg
+            mp_rend::RenderMap(MR ,catalogue , stops_all , bus_all , output_svg); 
+
+            json::Node node_doc(output_svg);
+            std::stringstream format_for_node_load;       
+            PrintNode(node_doc, format_for_node_load); 
+            output_svg=format_for_node_load.str();
+
+            std::string output_json; ///////строка для вывода информации по запросам
+            json_reader::GetStatInfo(requests ,catalogue, output_svg ,output_json); 
+            return output_json;      
+        }
+       else{
+             return "null"s;
+        }
+    } ; 
+    
+   void OutJsonFile(const std::string& req_inf, std::ostream& output){
+        std::stringstream ss;
+        ss.str(req_inf);
+        json::Document doc = json::Load(ss);
+        json::Print(doc, output);
+    } 
+    
+    
 }
     
     
