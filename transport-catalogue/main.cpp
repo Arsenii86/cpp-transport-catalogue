@@ -8,6 +8,6 @@
 
 int main() {   
     transport_directory::tr_cat::TransportCatalogue catalogue;    
-    std::string req_inf = req_hand::QueryProcessor(std::cin,catalogue);
-    json_reader::OutJsonFile(req_inf, std::cout);
+    json::Node stat_info = req_hand::QueryProcessor(std::cin,catalogue);
+    json_reader::OutJsonFile(stat_info, std::cout);
 }

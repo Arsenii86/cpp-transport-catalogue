@@ -1,4 +1,5 @@
 #include "json_reader.h"
+#include "json_builder.h"
 namespace json_reader{
     
    
@@ -41,7 +42,7 @@ namespace json_reader{
     if (requests.at("base_requests"s).IsArray()){
                const json::Array& base_requests =requests.at("base_requests"s).AsArray();            
                for (const auto& node_br:base_requests){
-                   const json::Dict& requests_br=node_br.AsMap();
+                   const json::Dict& requests_br=node_br.AsDict();
                    if(requests_br.at("type"s).AsString() == "Stop"s ){
                        const std::string& stop_name=requests_br.at("name"s).AsString(); 
                        stops_all.push_back(stop_name);////для дальнейшего определения координат остановок, встречающихся на маршруте///
@@ -53,11 +54,11 @@ namespace json_reader{
                } 
             
                 for (const auto& node_br:base_requests){
-                   const json::Dict& requests_br=node_br.AsMap();
+                   const json::Dict& requests_br=node_br.AsDict();
                    if(requests_br.at("type"s).AsString() == "Stop"s ){                       
                         const std::string& stop_name_from = requests_br.at("name"s).AsString();
-                        if (requests_br.at("road_distances"s).IsMap()){
-                        const json::Dict& stop_geo_dist = requests_br.at("road_distances"s).AsMap();
+                        if (requests_br.at("road_distances"s).IsDict()){
+                        const json::Dict& stop_geo_dist = requests_br.at("road_distances"s).AsDict();
                                for (const auto& [stop_name_to, node_dist]:stop_geo_dist){
                                    const auto dist_value = std::to_string(node_dist.AsInt());
                                    catalogue.InsertStopDist(stop_name_from, stop_name_to, dist_value);
@@ -67,7 +68,7 @@ namespace json_reader{
                }
             
                 for (const auto& node_br:base_requests){
-                   const json::Dict& requests_br = node_br.AsMap();
+                   const json::Dict& requests_br = node_br.AsDict();
                    if(requests_br.at("type"s).AsString() == "Bus"s ){                       
                        std::vector<std::string_view> stops_on_route;
                        const std::string& bus_name = requests_br.at("name"s).AsString();                       
@@ -90,55 +91,83 @@ namespace json_reader{
     }
     
     
-     void GetStatInfo(const json::Dict& requests, transport_directory::tr_cat::TransportCatalogue& catalogue, std::string& svg_file, std::string& output_temp){
+     json::Node GetStatInfo(const json::Dict& requests, transport_directory::tr_cat::TransportCatalogue& catalogue, std::string& svg_file){
         using namespace std::literals;
-        if (requests.at("stat_requests"s).IsArray()){
-           output_temp+='[';
+        json::Builder answer=json::Builder{};//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+        if (requests.at("stat_requests"s).IsArray()){            
+            json::ArrayItemContext array_=answer.StartArray();//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             const json::Array& stat_requests = requests.at("stat_requests"s).AsArray();
-            bool is_first = true;
+           
             for (const auto& node_sr:stat_requests){
-                   const json::Dict& requests_sr = node_sr.AsMap(); 
+                   const json::Dict& requests_sr = node_sr.AsDict(); 
                    if(requests_sr.at("type"s).AsString() == "Stop"s ){
                        const std::string& stop_name = requests_sr.at("name"s).AsString();
                        const int request_id = requests_sr.at("id"s).AsInt();                       
                        if (catalogue.FindStop(stop_name) != nullptr){ 
-                           const std::set<std::string_view>* bus_thr_stop = catalogue.GetBusThroughStop(stop_name);  
-                           output_temp+= svg::StopInform(is_first,bus_thr_stop,request_id);
-                           }                        
+                           const std::set<std::string_view>* bus_thr_stop = catalogue.GetBusThroughStop(stop_name); 
+                           json::DictItemContext dict_=array_.StartDict();//!!!!!!!!!!!!!!!!!!!!!!!
+                           json::ArrayItemContext array_=dict_.Key("buses"s).StartArray();//!!!!!!!!!!!!!!!!!!!!!
+                           if (bus_thr_stop!=nullptr){ 
+                                   json::ValueContextArr value_arr=array_.Value(std::string(*(*bus_thr_stop).begin()));//!!!!!!!!!!
+                                   for (auto iter=++(*bus_thr_stop).begin();iter!= (*bus_thr_stop).end();++iter){
+                                        value_arr.Value(std::string(*iter));//!!!!!!!!!!!!!!!!!!!!
+                                   }
+                                value_arr.EndArray();//!!!!!!!!!!!!!!!!!!!
+                           }
+                           else array_.EndArray();//!!!!!!!!!!!!!!!!!!!!!!!
+                           dict_.Key("request_id"s).Value(request_id).EndDict();//!!!!!!!!!!!!!!!!!!!!!!!
+                           
+                       }                        
                        else {
-                           output_temp+=svg::RequestNotFound(is_first, request_id);
+                           array_.StartDict()//!!!!!!!!!!!!!!!!!!!!!!!
+                               .Key("request_id").Value(request_id)//!!!!!!!!!!!!!!!!!!!!!!!
+                               .Key("error_message").Value("not found")//!!!!!!!!!!!!!!!!!!!!!!!
+                               .EndDict();//!!!!!!!!!!!!!!!!!!!!!!!
                        }                       
                    }             
                    if(requests_sr.at("type"s).AsString() == "Bus"s ){
                          const std::string& bus_name = requests_sr.at("name"s).AsString();
-                         const int request_id = requests_sr.at("id"s).AsInt();
-                          if (catalogue.FindRoute(bus_name) != nullptr){                            
+                         const int request_id = requests_sr.at("id"s).AsInt();                        
+                          if (catalogue.FindRoute(bus_name) != nullptr){ 
+                            json::DictItemContext dict_=array_.StartDict();//!!!!!!!!!!!!!!!!!!!!!!!    
                             const auto route_inf = catalogue.GetRoutInform(bus_name);
                             int stop_number = route_inf.stop_number;
                             int unique_stop_number = route_inf.unique_stop_number;                
                             double route_road_lenght = route_inf.route_road_lenght;
                             double curvature = route_inf.curvature;
-                            output_temp += svg::BusInform(is_first, stop_number, unique_stop_number, route_road_lenght, curvature, request_id);
+                            dict_.Key("curvature").Value(curvature)//!!!!!!!!!!!!!!!!
+                                  .Key("request_id").Value(request_id)//!!!!!!!!!!!!!!!!
+                                  .Key("route_length").Value(route_road_lenght)//!!!!!!!!!!!!!!!!
+                                  .Key("stop_count").Value(stop_number)//!!!!!!!!!!!!!!!!
+                                  .Key("unique_stop_count").Value(unique_stop_number)//!!!!!!!!!!!!!!!!
+                                  .EndDict();//!!!!!!!!!!!!!!!!  
                           }
                           else { 
-                            output_temp += svg::RequestNotFound(is_first, request_id);
+                            array_.StartDict().
+                                      Key("request_id").Value(request_id).
+                                      Key("error_message").Value("not found").
+                                      EndDict();
                           }                       
                      }                    
                     if(requests_sr.at("type"s).AsString() == "Map"s ){
-                          const int request_id = requests_sr.at("id"s).AsInt();
-                            output_temp += svg::MapInform(is_first, svg_file, request_id);            
+                            const int request_id = requests_sr.at("id"s).AsInt();
+                            array_.StartDict().
+                                   Key("request_id").Value(request_id).
+                                   Key("map").Value(svg_file).
+                                   EndDict();   
                      }                
-                }           
-        }
-        output_temp += "\n]";
+                }  
+            array_.EndArray();
+        }        
+        return answer.Build();
     }  
     
     
     mp_rend::MapRenderer SetSettingsForRenderMap(const json::Dict& requests ){
     using namespace std::literals; 
     mp_rend::MapRenderer MR;
-    if (requests.at("render_settings"s).IsMap()){   
-       const json::Dict& render_st=requests.at("render_settings"s).AsMap();
+    if (requests.at("render_settings"s).IsDict()){   
+       const json::Dict& render_st=requests.at("render_settings"s).AsDict();
        for(const auto& [setting,value]:render_st){
             if (setting=="width"){
                 double width=value.AsDouble();
@@ -207,14 +236,14 @@ namespace json_reader{
     };
     
    
-    std::string ReadAndProcessJsonFile(std::istream& input,transport_directory::tr_cat::TransportCatalogue& catalogue){
+    json::Node ReadAndProcessJsonFile(std::istream& input,transport_directory::tr_cat::TransportCatalogue& catalogue){
          using namespace std::literals;  
         //Создание json документа
         json::Document doc=json::Load(input);
         
         json::Node node_root = doc.GetRoot();
-        if(node_root.IsMap()){
-            const json::Dict& requests = node_root.AsMap(); 
+        if(node_root.IsDict()){
+            const json::Dict& requests = node_root.AsDict(); 
             std::vector<std::string_view> stops_all;
             std::vector<std::pair<std::string,bool>> bus_all;
             
@@ -223,26 +252,21 @@ namespace json_reader{
             mp_rend::MapRenderer MR=json_reader::SetSettingsForRenderMap(requests);
 
             std::string output_svg;////////строка длявывода svg
-            mp_rend::RenderMap(MR ,catalogue , stops_all , bus_all , output_svg); 
-
-            json::Node node_doc(output_svg);
-            std::stringstream format_for_node_load;       
-            PrintNode(node_doc, format_for_node_load); 
-            output_svg=format_for_node_load.str();
-
-            std::string output_json; ///////строка для вывода информации по запросам
-            json_reader::GetStatInfo(requests ,catalogue, output_svg ,output_json); 
-            return output_json;      
+            
+            mp_rend::RenderMap(MR ,catalogue , stops_all , bus_all , output_svg);
+            
+            json::Node stat_info= json_reader::GetStatInfo(requests ,catalogue, output_svg ); 
+            
+            return stat_info;      
         }
        else{
-             return "null"s;
+             return json::Node {"null"s};
         }
     } ; 
     
-   void OutJsonFile(const std::string& req_inf, std::ostream& output){
-        std::stringstream ss;
-        ss.str(req_inf);
-        json::Document doc = json::Load(ss);
+   void OutJsonFile(const json::Node& stat_info, std::ostream& output){
+        
+        json::Document doc(stat_info);
         json::Print(doc, output);
     } 
     
