@@ -19,8 +19,7 @@ class Builder{
        class KeyContext; 
        class DictItemContext;      
        class ArrayItemContext;
-       class ValueContextArr;
-       class ValueContextDict;
+       
         
     public:   
         Builder(){}; 
@@ -65,34 +64,31 @@ class Builder{
     
         class ShadowBuilder {
         public:
-            ShadowBuilder(Builder& builder):builder_(builder){};
+            ShadowBuilder(Builder& builder):sh_build_(builder){};
             json::Node Build(){
-                return builder_.Build();
+                return sh_build_.Build();
             }
             KeyContext Key(std::string key) {
-                return builder_.Key(key);
+                return sh_build_.Key(key);
             }
             ShadowBuilder Value(Node::Value value) {
-                return builder_.Value(value);
+                return sh_build_.Value(value);
             }
             DictItemContext StartDict() {
-                return builder_.StartDict();
+                return sh_build_.StartDict();
             }
             ArrayItemContext StartArray() {
-                return builder_.StartArray();
+                return sh_build_.StartArray();
             }
             ShadowBuilder EndDict() {
-                return builder_.EndDict();
+                return sh_build_.EndDict();
             }
             ShadowBuilder EndArray() {
-                return builder_.EndArray();
+                return sh_build_.EndArray();
             }
-            
-            
-            
-            
+              
         private:
-            Builder& builder_;
+            Builder& sh_build_;
         };
     
         class KeyContext:public ShadowBuilder{           
