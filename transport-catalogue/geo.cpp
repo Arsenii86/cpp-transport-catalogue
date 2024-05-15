@@ -1,4 +1,4 @@
-#define _USE_MATH_DEFINES
+// Вставьте сюда решение из предыдущего спринта#define _USE_MATH_DEFINES
 #include "geo.h"
 
 #include <cmath>

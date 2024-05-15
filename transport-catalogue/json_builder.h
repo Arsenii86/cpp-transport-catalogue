@@ -4,113 +4,125 @@
 #include <vector>
 #include <iterator>
 #include <optional>
+#include <cassert>
 #include "json.h"
 namespace json { 
-   class KeyContext; 
-   class DictItemContext;
-   class ValueContextDict;
-   class ArrayItemContext;
-   class ValueContextArr; 
+   
     
-    class Builder{
+class Builder{
+    private:
         std::optional<std::string> key_;
         std::optional<json::Node> root_;     
-        std::vector<json::Node*> nodes_stack_;       
+        std::vector<json::Node*> nodes_stack_;
+    
+       class ShadowBuilder;
+       class KeyContext; 
+       class DictItemContext;      
+       class ArrayItemContext;
+       
+        
     public:   
-        Builder(){};          
+        Builder(){}; 
+        json::Node Build();  
         KeyContext Key(std::string key);        
-        Builder& Value(json::Node::Value val);        
-        DictItemContext StartDict();        
-        Builder& EndDict();        
-        ArrayItemContext StartArray();        
-        Builder& EndArray();        
-        json::Node Build();         
-    };
-    
+        ShadowBuilder Value(json::Node::Value val);        
+        DictItemContext StartDict(); 
+        ArrayItemContext StartArray();
+        ShadowBuilder EndDict();
+        ShadowBuilder EndArray();   
         
+    private:
     
+    template <typename T>
+        Builder& StartConteiner(T conteiner){
+            if(root_==std::nullopt&&nodes_stack_.empty()){
+                root_=conteiner;///////////////
+                nodes_stack_.emplace_back(&(*root_));
+                return *this;
+                }
+            else if(root_!=std::nullopt&&!nodes_stack_.empty()){
+                json::Node* iter=nodes_stack_.back();
+                if (iter->IsArray()){
+                    json::Node node=conteiner;///////
+                    auto& array=(iter->AsArray_() );
+                    array.emplace_back(std::move(node));
+                    nodes_stack_.emplace_back(&array.back());
+                    return *this;
+                }
+                else if (iter->IsDict()&&(key_!=std::nullopt)){
+                    json::Node node=conteiner;//////
+                    auto& dict=(iter->AsDict_() );
+                    dict[*key_]=std::move(node);
+                    nodes_stack_.emplace_back(&dict[*key_]);  
+                     key_.reset();
+                    return *this;
+                }
+                else throw std::logic_error("Контейнер вставляется в словарь без иницилизированного ключа");
+            }
+            else throw std::logic_error("Контейнер вставляется при готовом объекте");
+
+        }
     
-    class DictItemContext:public Builder{
-           Builder& builder_;
+        class ShadowBuilder {
+        public:
+            ShadowBuilder(Builder& builder):sh_build_(builder){};
+            json::Node Build(){
+                return sh_build_.Build();
+            }
+            KeyContext Key(std::string key) {
+                return sh_build_.Key(key);
+            }
+            ShadowBuilder Value(Node::Value value) {
+                return sh_build_.Value(value);
+            }
+            DictItemContext StartDict() {
+                return sh_build_.StartDict();
+            }
+            ArrayItemContext StartArray() {
+                return sh_build_.StartArray();
+            }
+            ShadowBuilder EndDict() {
+                return sh_build_.EndDict();
+            }
+            ShadowBuilder EndArray() {
+                return sh_build_.EndArray();
+            }
+              
+        private:
+            Builder& sh_build_;
+        };
+    
+        class KeyContext:public ShadowBuilder{           
        public:
-           DictItemContext(Builder& builder);  
-        
-           KeyContext Key(std::string key); 
-           Builder& EndDict();  
-                  
-           Builder& Value(json::Node::Value val)=delete;        
+            
+            KeyContext(ShadowBuilder builder):ShadowBuilder(builder){}; 
+            DictItemContext Value(json::Node::Value val){ return ShadowBuilder::Value(val); }        
+            KeyContext Key(std::string key)=delete; 
+            ShadowBuilder EndDict()=delete;
+            ShadowBuilder EndArray()=delete;        
+            json::Node Build()=delete;
+            
+        }; 
+    
+        class DictItemContext:public ShadowBuilder{           
+        public:
+           DictItemContext(ShadowBuilder builder):ShadowBuilder(builder){};           
+           ShadowBuilder Value(json::Node::Value val)=delete;        
            DictItemContext StartDict()=delete; 
            ArrayItemContext StartArray()=delete;        
-           Builder& EndArray()=delete;        
+           ShadowBuilder EndArray()=delete;        
            json::Node Build()=delete;
         
    };
     
-   class KeyContext:public Builder{
-           Builder& builder_;
-       public:
-           KeyContext(Builder& builder);        
-           ValueContextDict Value(json::Node::Value val,[[maybe_unused]] bool after_key=true);       
-           ArrayItemContext StartArray() ;       
-           DictItemContext StartDict() ;     
-       
-            KeyContext Key(std::string key)=delete;      
-           // Builder& Value(json::Node::Value val)=delete;  
-            Builder& EndDict()=delete;
-            Builder& EndArray()=delete;        
-            json::Node Build()=delete;
-       
-    }; 
-          
-    class ValueContextDict :public Builder {
-          Builder& builder_;
-       public:
-            ValueContextDict(Builder& builder);  
-            Builder& EndDict();
-            KeyContext Key(std::string key); 
-        
-                
-            Builder& Value(json::Node::Value val)=delete;       
-            DictItemContext StartDict()=delete;
-            ArrayItemContext StartArray()=delete;        
-            Builder& EndArray()=delete;       
-            json::Node Build()=delete; 
-        
-        
-        
-    };
-
-    class ArrayItemContext:public Builder{
-           Builder& builder_;
-       public:
-            ArrayItemContext(Builder& builder);    
-            ValueContextArr Value(json::Node::Value val,[[maybe_unused]] bool in_array=true);/////////
-            DictItemContext StartDict();
-            ArrayItemContext StartArray();
-            Builder& EndArray(); 
-        
-            KeyContext Key(std::string key)=delete;        
-            //Builder& Value(json::Node::Value val)=delete;
-            Builder& EndDict()=delete; 
+    class ArrayItemContext:public ShadowBuilder{
+        public:
+            ArrayItemContext(ShadowBuilder builder):ShadowBuilder(builder){};
+            ArrayItemContext Value(json::Node::Value val){ return ShadowBuilder::Value(val); }      
+            KeyContext Key(std::string key)=delete;
+            ShadowBuilder EndDict()=delete; 
             json::Node Build()=delete; 
         
     };
-    
-   class ValueContextArr:public Builder{
-           Builder& builder_;
-       public:
-           ValueContextArr(Builder& builder);
-            ValueContextArr Value(json::Node::Value val,[[maybe_unused]] bool in_array=true);
-            DictItemContext StartDict();
-            ArrayItemContext StartArray();
-            Builder& EndArray();
-        
-            KeyContext Key(std::string key)=delete;        
-            //Builder& Value(json::Node::Value val)=delete; 
-            Builder& EndDict()=delete;  
-            json::Node Build()=delete; 
-       
-       
-       
-   };
+  };
 }

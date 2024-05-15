@@ -42,7 +42,17 @@ namespace transport_directory{
                 const domain::Stop* FindStop(const std::string_view bus_stop);
                 RouteInf GetRoutInform(const std::string_view bus);
                 const std::set<std::string_view>* GetBusThroughStop(const std::string& bus_stop);
-                //vector<geo::Coordinates> GetCoordStopOnRoutes();
+                //////////////////                          
+                std::vector<std::string_view> GetStopInRoutesOnly(){
+                    std::vector<std::string_view> StopInRoutesOnly;
+                    if(!buses_through_stop.empty()){
+                        for(const auto& [stop,buses]:buses_through_stop){
+                            StopInRoutesOnly.push_back(stop);
+                        }
+                    }
+                    return StopInRoutesOnly;
+                }
+            ////////////////////
 
             private:
             

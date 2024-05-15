@@ -350,9 +350,3 @@ class Snowman: public svg::Drawable{
 };
 
 }  
-
-
-
-
-
-
