@@ -11,20 +11,15 @@
 
 namespace json_reader{  
     svg::Color ToRgbOrRgba(json:: Node node);
-    ///////
-    std::pair<double,int> GetRoutingSettings(const json::Dict& requests );
     
+    std::pair<double,int> GetRoutingSettings(const json::Dict& requests );    
        
     json::Node GetStatInfo(const json::Dict& requests,
                            transport_directory::tr_cat::TransportCatalogue& catalogue,
                            std::string& svg_file,
-                           const transport_router::TransportRouter& tr_rout);
-    
-    ///////   
+                           const transport_router::TransportRouter& tr_rout);    
+       
     void FillingCatalog  (const json::Dict& requests, transport_directory::tr_cat::TransportCatalogue& catalogue, std::vector<std::string_view>& stops_all, std::vector<std::pair<std::string,bool>>& bus_all);
-    
-    
-    
     
     
    mp_rend::MapRenderer SetSettingsForRenderMap(const json::Dict& requests );

@@ -167,11 +167,11 @@ json::Node GetStatInfo(const json::Dict& requests,
                             EndDict();
                         }
                         else{ 
-                            size_t from = tr_rout.Stop_VertexNum_.at(stop_name_from);
-                            size_t to = tr_rout.Stop_VertexNum_.at(stop_name_to);
-                            transport_router::RouteInfoTranslete optimal_route = FindOptimalRoute(tr_rout.router_, tr_rout.graf_, from, to);
+                            transport_router::RouteInfoTranslete optimal_route = tr_rout.FindOptimalRoute(stop_name_from, stop_name_to);
+                            int bus_wait_time = tr_rout.GetWaitTime();
+                            const std::unordered_map<size_t,std::string>& vertex_num_stop = tr_rout. GetVertexStop(); 
                             //std::cout<<"ok"<<std::endl;                            
-                            JsonBuildForRoute(answer, optimal_route, tr_rout.VertexNum_Stop_, tr_rout.bus_wait_time_, request_id);
+                            JsonBuildForRoute(answer, optimal_route, vertex_num_stop, bus_wait_time, request_id);
                         }
                     }
                 }  
@@ -293,57 +293,13 @@ json::Node GetStatInfo(const json::Dict& requests,
             //Достаем из запроса скорость автобуса и время ожидания на остановках 
             const auto[bus_velocity,bus_wait_time] = GetRoutingSettings(requests);
             
-            //Считываем из транспортного каталога остановки(без повторений), которые входят в маршруты
-            std::vector<std::string_view> StopInRoutesOnly = std::move(catalogue.GetStopInRoutesOnly());
+            //Создаем структуру для хранения скорости автобуса и времени остановки
+            transport_router::RouteSetings route_settings(bus_velocity,bus_wait_time); 
             
-	    //Определяем количество этих остановок и увеличивем вдвое(количество вершин)
-            size_t vertex_count=StopInRoutesOnly.size();  
-
-	    //Создаем итерпритатор вершин,представляющий из себя словарь с парой "номер	вершины - название остановки" (с ожиданием и без)
-            std::unordered_map<size_t,std::string> VertexNum_Stop;
-
-	    //Резервируем размер интерпретатора по количеству вершин
-            VertexNum_Stop.reserve(vertex_count);
-
-	    //Запоняем интерпретатор, размещая обычную вершину, следом за вершиной с ожиданием
-            size_t i=0;
-            for(const auto stop:StopInRoutesOnly){
-                VertexNum_Stop[i]=std::string(stop);                
-                ++i;
-            }
+            //Создаю объект клсса TransportRouter одновременно создаю внутри graph и router
+            transport_router::TransportRouter tr_rout(catalogue, route_settings, bus_all );                 
             
-            //создаю словарь на основе VertexNum_Stop в котором ключ - остановка, значение -пара вершин (с ожиданием и без)
-            std::unordered_map<std::string,size_t> Stop_VertexNum;      
-            
-            for (const auto&[vertex,stop]:VertexNum_Stop){
-                Stop_VertexNum[stop] = vertex;                 
-            }                    
-            /*
-            for (const auto&[stop,vertex]:Stop_VertexNum){
-                std::cout<<stop<<'{'<<vertex.first<<','<<vertex.second<<'}'<<std::endl;//!!!!!!!!!
-            }
-            
-            */
-            //создаю взвешенный граф для всех маршрутов в каталоге.!!!!!!!!!!!Использовать как-то move-семантику
-            graph::DirectedWeightedGraph<transport_router::RouteTime> graf = transport_router::GreateGrafForAllRoute(catalogue,
-                                            bus_all,
-                                            Stop_VertexNum,
-                                            bus_velocity,
-                                            bus_wait_time);
-            
-            //создаю объект типа Router на основе графа
-            graph::Router router(graf);
-             
-            transport_router::TransportRouter tr_rout(graf,router,bus_wait_time,VertexNum_Stop,Stop_VertexNum);
-            
-            //transport_router::RouteInfoTranslete optimal_route = FindOptimalRoute(router, graf, from, to);
-            
-            /*
-            std::cout<<stop_name_from<<'-'<<from<<' '<<stop_name_to<<'-'<<to<<std::endl;//!!!!!!!!!!!!
-            
-            */
-           
-            mp_rend::MapRenderer MR=json_reader::SetSettingsForRenderMap(requests);
+            mp_rend::MapRenderer MR = json_reader::SetSettingsForRenderMap(requests);
 
             std::string output_svg;
             

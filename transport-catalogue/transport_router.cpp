@@ -1,114 +1,118 @@
 #include "transport_router.h"
 
 namespace transport_router{
-    
-/* У  функции слишком большое количество перменных  
- template<typename Iter>
- void GreateAndAddEdge(Iter stop_iter_from, Iter stop_iter_to, Iter stop_iter, graph::DirectedWeightedGraph<RouteTime>& graf, transport_directory::tr_cat::TransportCatalogue& catalogue,int span_count, std::string bus, int& road_dist_summ){                    
-                    //нахожу расстояние между соседними остановками
-                    //расстояние в метрах, а скорость в км/час, а время суммарное должно быть в минутах 
-                    road_dist_summ += catalogue.GetRoadDist((**stop_iter).name,(**stop_iter_to).name);
-                    //нахождение времени на преодаление расстояния между остановками
-                    double time_between_stop = road_dist_summ/bus_velocity + bus_wait_time;
-                    size_t from = Stop_VertexNum.at((**stop_iter_from).name);
-                    size_t to = Stop_VertexNum.at((**stop_iter_to).name);
-                    graph::Edge edge(from,to,RouteTime{bus,time_between_stop,span_count});   
-                    graf.AddEdge(edge);                    
- }
-    
- */   
-    
-graph::DirectedWeightedGraph<RouteTime> GreateGrafForAllRoute(transport_directory::tr_cat::TransportCatalogue& catalogue,
-                                            const std::vector<std::pair<std::string,bool>>& bus_all,
-                                            const std::unordered_map<std::string,size_t>& Stop_VertexNum,
-                                            double bus_velocity,
-                                            int bus_wait_time){
-    using namespace std::literals;   
-    size_t vertex_count=Stop_VertexNum.size();    
-    //перевожу км/час в метры в минуту
-     bus_velocity=bus_velocity*1000/60;   
-    //Создал объект графа
-    graph::DirectedWeightedGraph<RouteTime> graf(vertex_count); 
-      
-    /*
-    заполняю граф маршрутами.
-    у меня есть вектор с номерами автобусов и определителем круговой ли это маршрут
-    прохожусь по нему
-    */
-    for (const auto& [bus,is_round]:bus_all){
-        const auto route=catalogue.FindRoute(bus);//нахожу указатель на маршрут
         
-        size_t stop_count = route->stops.size();
-        if (is_round){
-            for (auto stop_iter_from= route->stops.begin();stop_iter_from!=(route->stops.end())-1;stop_iter_from+=1){
-                double road_dist_summ = 0;
-                int span_count = 0;
-                auto stop_iter=stop_iter_from;
-                for (auto stop_iter_to= stop_iter_from+1;stop_iter_to!=(route->stops.end());stop_iter_to+=1){
-                    ++span_count;
-                    //нахожу расстояние между соседними остановками
-                    //расстояние в метрах, а скорость в км/час, а время суммарное должно быть в минутах 
-                    road_dist_summ += catalogue.GetRoadDist((**stop_iter).name,(**stop_iter_to).name);
-                    //нахождение времени на преодаление расстояния между остановками
-                    double time_between_stop = road_dist_summ/bus_velocity + bus_wait_time;
-                    size_t from = Stop_VertexNum.at((**stop_iter_from).name);
-                    size_t to = Stop_VertexNum.at((**stop_iter_to).name);
-                    graph::Edge edge(from,to,RouteTime{bus,time_between_stop,span_count});   
-                    graf.AddEdge(edge);                    
-                    stop_iter=stop_iter_to;
+    void TransportRouter::GreateGrafAndRoute(const std::vector<std::pair<std::string,bool>>& bus_all){
+        using namespace std::literals; 
+        /*        
+        заполняю граф маршрутами.
+        у меня есть вектор с номерами автобусов и определителем круговой ли это маршрут
+        прохожусь по нему
+        */
+        for (const auto& [bus, is_round]:bus_all){
+            const auto route = catalogue_.FindRoute(bus);//нахожу указатель на маршрут
+
+            size_t stop_count = route->stops.size();
+            if (is_round){
+                for (auto stop_iter_from= route->stops.begin(); stop_iter_from != (route->stops.end()) - 1; stop_iter_from += 1){
+                    double road_dist_summ = 0;
+                    int span_count = 0;
+                    auto stop_iter = stop_iter_from;
+                    for (auto stop_iter_to = stop_iter_from + 1; stop_iter_to != (route->stops.end()); stop_iter_to += 1){
+                        ++span_count;
+                        //нахожу расстояние между соседними остановками
+                        //расстояние в метрах, а скорость в км/час, а время суммарное должно быть в минутах 
+                        
+                        road_dist_summ += catalogue_.GetRoadDist((**stop_iter).name,(**stop_iter_to).name);
+                        
+                        //нахождение времени на преодаление расстояния между остановками
+                        double time_between_stop = road_dist_summ/bus_velocity_ + bus_wait_time_;
+                        size_t from = stop_vertex_num_.at((**stop_iter_from).name);
+                        size_t to = stop_vertex_num_.at((**stop_iter_to).name);
+                        graph::Edge edge(from, to , RouteTime{bus ,time_between_stop, span_count});   
+                        graph_->AddEdge(edge);                    
+                        stop_iter = stop_iter_to;
+                    }
                 }
+                
             }
+            else{
+                
+                for (auto stop_iter_from = route->stops.begin(); stop_iter_from != route->stops.begin() + stop_count/2 + 1; stop_iter_from+=1){
+                    double road_dist_summ=0;
+                    int span_count = 0;
+                    auto stop_iter = stop_iter_from;
+                    for (auto stop_iter_to = stop_iter_from+1; stop_iter_to != route->stops.begin() + stop_count/2 + 1; stop_iter_to += 1){
+                        ++span_count;
+                        //нахожу расстояние между соседними остановками
+                        //расстояние в метрах, а скорость в км/час, а время суммарное должно быть в минутах 
+                        road_dist_summ += catalogue_.GetRoadDist((**stop_iter).name,(**stop_iter_to).name);
+                        //нахождение времени на преодаление расстояния между остановками
+                        double time_between_stop = road_dist_summ/bus_velocity_ + bus_wait_time_;
+                        size_t from = stop_vertex_num_.at((**stop_iter_from).name);
+                        size_t to = stop_vertex_num_.at((**stop_iter_to).name);
+                        graph::Edge edge(from, to, RouteTime{bus, time_between_stop, span_count});   
+                        graph_->AddEdge(edge);
+                        stop_iter = stop_iter_to;
+                    }
+                }
+
+                for (auto stop_iter_from = route->stops.begin() + stop_count/2; stop_iter_from != route->stops.end(); stop_iter_from += 1){
+                    double road_dist_summ=0;
+                    int span_count = 0;
+                    auto stop_iter=stop_iter_from;
+                    for (auto stop_iter_to = stop_iter_from+1; stop_iter_to != route->stops.end(); stop_iter_to += 1){
+                        ++span_count;
+                        //нахожу расстояние между соседними остановками
+                        //расстояние в метрах, а скорость в км/час, а время суммарное должно быть в минутах 
+                        road_dist_summ += catalogue_.GetRoadDist((**stop_iter).name,(**stop_iter_to).name);
+                        //нахождение времени на преодаление расстояния между остановками
+                        double time_between_stop = road_dist_summ/bus_velocity_ + bus_wait_time_;
+                        size_t from = stop_vertex_num_.at((**stop_iter_from).name);
+                        size_t to = stop_vertex_num_.at((**stop_iter_to).name);
+                        graph::Edge edge(from, to, RouteTime{bus ,time_between_stop, span_count});   
+                        graph_->AddEdge(edge);
+                        stop_iter = stop_iter_to;
+                    }
+                }
+            } 
         }
-        else{
-            for (auto stop_iter_from= route->stops.begin();stop_iter_from!=route->stops.begin()+stop_count/2+1;stop_iter_from+=1){
-                double road_dist_summ=0;
-                int span_count = 0;
-                auto stop_iter=stop_iter_from;
-                for (auto stop_iter_to= stop_iter_from+1;stop_iter_to!=route->stops.begin()+stop_count/2+1;stop_iter_to+=1){
-                    ++span_count;
-                    //нахожу расстояние между соседними остановками
-                    //расстояние в метрах, а скорость в км/час, а время суммарное должно быть в минутах 
-                    road_dist_summ += catalogue.GetRoadDist((**stop_iter).name,(**stop_iter_to).name);
-                    //нахождение времени на преодаление расстояния между остановками
-                    double time_between_stop=road_dist_summ/bus_velocity+ bus_wait_time;
-                    size_t from = Stop_VertexNum.at((**stop_iter_from).name);
-                    size_t to = Stop_VertexNum.at((**stop_iter_to).name);
-                    graph::Edge edge(from,to,RouteTime{bus,time_between_stop,span_count});   
-                    graf.AddEdge(edge);
-                    stop_iter=stop_iter_to;
-                }
-            }
-            
-            for (auto stop_iter_from= route->stops.begin()+stop_count/2;stop_iter_from!=route->stops.end();stop_iter_from+=1){
-                double road_dist_summ=0;
-                int span_count = 0;
-                auto stop_iter=stop_iter_from;
-                for (auto stop_iter_to= stop_iter_from+1;stop_iter_to!=route->stops.end();stop_iter_to+=1){
-                    ++span_count;
-                    //нахожу расстояние между соседними остановками
-                    //расстояние в метрах, а скорость в км/час, а время суммарное должно быть в минутах 
-                    road_dist_summ += catalogue.GetRoadDist((**stop_iter).name,(**stop_iter_to).name);
-                    //нахождение времени на преодаление расстояния между остановками
-                    double time_between_stop=road_dist_summ/bus_velocity+ bus_wait_time;
-                    size_t from = Stop_VertexNum.at((**stop_iter_from).name);
-                    size_t to = Stop_VertexNum.at((**stop_iter_to).name);
-                    graph::Edge edge(from,to,RouteTime{bus,time_between_stop,span_count});   
-                    graf.AddEdge(edge);
-                    stop_iter=stop_iter_to;
-                }
-            }
-        } 
+        //Создаю в динамической памяти объект клсса роутер
+        
+       router_ = new graph::Router<RouteTime>(*graph_);
     }
-    return graf;
-  }
     
     
-    RouteInfoTranslete FindOptimalRoute(const graph::Router<transport_router::RouteTime>& router,
-                                        const graph::DirectedWeightedGraph<transport_router::RouteTime>& graf,
-                                        size_t from,
-                                        size_t to){       
-        //Нахожу оптимальный маршрут 
-       auto route_opt = router.BuildRoute(from,to);
+    TransportRouter::TransportRouter( transport_directory::tr_cat::TransportCatalogue& catalogue,
+                                      const RouteSetings& route_settings,
+                                      const std::vector<std::pair<std::string,bool>>& bus_all):
+                      catalogue_(catalogue), bus_wait_time_(route_settings.bus_wait_time){                                  
+            bus_velocity_ = route_settings.bus_velocity*1000/60;
+            std::vector<std::string_view> stop_in_routes_only = std::move(catalogue_.GetStopInRoutesOnly());
+            size_t vertex_count = stop_in_routes_only.size();  
+            graph_= new graph::DirectedWeightedGraph<RouteTime> (vertex_count);    
+            vertex_num_stop_.reserve(vertex_count);          
+            stop_vertex_num_.reserve(vertex_count);          
+            size_t i = 0;
+            for(const auto stop:stop_in_routes_only){
+               vertex_num_stop_[i] = std::string(stop);                
+               ++i;
+            }
+            for (const auto&[vertex,stop]:vertex_num_stop_){
+                stop_vertex_num_[stop] = vertex;                 
+            }  
+            TransportRouter::GreateGrafAndRoute(bus_all);              
+        }
+    
+    
+    
+    RouteInfoTranslete TransportRouter::FindOptimalRoute(const std::string& stop_from,
+                                         const std::string& stop_to) const{  
+        //Привожу название остановок в номерам вершин
+         size_t from = stop_vertex_num_.at(stop_from);
+         size_t to = stop_vertex_num_.at(stop_to);
+         //Нахожу оптимальный маршрут 
+       auto route_opt = router_->BuildRoute(from,to);
         //Проверяю, если маршрут не найден
        if (route_opt==std::nullopt){
            return RouteInfoTranslete(-1,{});
@@ -126,13 +130,14 @@ graph::DirectedWeightedGraph<RouteTime> GreateGrafForAllRoute(transport_director
             //std::vector<const graph::Edge<transport_router::RouteTime>*> route_edges_inform;
             //в цикле прохожусь по номерам граней и извлекаю соответствующю грань из графа
             for(const auto& edge_id:edges_id){
-                const auto& edge = graf.GetEdge(edge_id);                             
+                const auto& edge = graph_->GetEdge(edge_id);                             
                 //Сохраняю указатель на грань в соответствующий вектор route_edges_inform;
                 route_edges_inform.push_back(&edge); 
             }
             return RouteInfoTranslete (time,route_edges_inform);
         }
     }
+    
     
           
     void JsonBuildForRoute(json::Builder& answer,
