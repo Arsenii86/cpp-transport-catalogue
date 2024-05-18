@@ -33,6 +33,9 @@ namespace json_reader{
     
    void OutJsonFile(const json::Node& stat_info, std::ostream& output); 
     
+   void JsonBuildForRoute(json::Builder& answer,
+                           const transport_router::RouteInfoTranslete& optimal_route,
+                           int request_id);
     
     
 }

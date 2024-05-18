@@ -60,9 +60,7 @@ using namespace std::literals;
                                                                                     vertex_num_stop(vertex_stop){};
     };
     
-    void JsonBuildForRoute(json::Builder& answer,
-                           const RouteInfoTranslete& optimal_route,
-                           int request_id);
+    
     
     class TransportRouter{
       
@@ -88,6 +86,30 @@ using namespace std::literals;
         std::unique_ptr<graph::Router<RouteTime>> router_;
       
         void GreateGraphAndRoute(const std::vector<std::pair<std::string,bool>>& bus_all);
+        
+        template <typename Iter>
+        void GreateAddEdge(const Iter& stop_iter_from,const Iter& stop_iter_end, const std::string& bus)
+        {
+            double road_dist_summ = 0;
+            int span_count = 0;
+            auto stop_iter = stop_iter_from;
+            for (auto stop_iter_to = stop_iter_from + 1; stop_iter_to != stop_iter_end; stop_iter_to += 1){
+                ++span_count;
+                road_dist_summ += catalogue_.GetRoadDist((*stop_iter)->name,(*stop_iter_to)->name);
+                double time_between_stop = road_dist_summ/bus_velocity_ + bus_wait_time_;
+                size_t from = stop_vertex_num_.at((*stop_iter_from)->name);
+                size_t to = stop_vertex_num_.at((*stop_iter_to)->name);
+                graph::Edge edge(from, to , RouteTime{bus ,time_between_stop, span_count});   
+                graph_->AddEdge(edge);                    
+                stop_iter = stop_iter_to;
+            }
+        }
+        
+        void GreateAdgeForRoute( const std::string& bus, bool is_round);
+        
+        
+        
+        
       
     public: 
         TransportRouter()=delete;
@@ -97,6 +119,9 @@ using namespace std::literals;
                     const std::vector<std::pair<std::string,bool>>& bus_all
                    );
       
+        
+                   
+               
         
       
         RouteInfoTranslete FindOptimalRoute(const std::string_view stop_from,const std::string_view stop_to) const;      

@@ -1,6 +1,30 @@
 #include "transport_router.h"
 
 namespace transport_router{
+    
+    void TransportRouter::GreateAdgeForRoute( const std::string& bus, bool is_round){
+            const auto route = catalogue_.FindRoute(bus);//Нахожу указатель на маршрут
+
+            size_t stop_count = route->stops.size();
+            if (is_round){
+                for (auto stop_iter_from= route->stops.begin(); stop_iter_from != (route->stops.end()) - 1; stop_iter_from += 1){
+                    auto stop_iter_end = (route->stops.end());
+                    GreateAddEdge(stop_iter_from, stop_iter_end, bus);
+                }                
+            }
+            else{
+                
+                for (auto stop_iter_from = route->stops.begin(); stop_iter_from != route->stops.begin() + stop_count/2 + 1; stop_iter_from+=1){
+                    auto stop_iter_end = route->stops.begin() + stop_count/2 + 1;
+                    GreateAddEdge(stop_iter_from, stop_iter_end, bus);
+                }
+
+                for (auto stop_iter_from = route->stops.begin() + stop_count/2; stop_iter_from != route->stops.end(); stop_iter_from += 1){
+                    auto stop_iter_end =  route->stops.end();
+                    GreateAddEdge(stop_iter_from, stop_iter_end, bus);
+                }
+            } 
+        } 
         
     void TransportRouter::GreateGraphAndRoute(const std::vector<std::pair<std::string,bool>>& bus_all){
         using namespace std::literals; 
@@ -12,66 +36,7 @@ namespace transport_router{
         */
         
         for (const auto& [bus, is_round]:bus_all){
-            const auto route = catalogue_.FindRoute(bus);//Нахожу указатель на маршрут
-
-            size_t stop_count = route->stops.size();
-            if (is_round){
-                for (auto stop_iter_from= route->stops.begin(); stop_iter_from != (route->stops.end()) - 1; stop_iter_from += 1){
-                    double road_dist_summ = 0;
-                    int span_count = 0;
-                    auto stop_iter = stop_iter_from;
-                    for (auto stop_iter_to = stop_iter_from + 1; stop_iter_to != (route->stops.end()); stop_iter_to += 1){
-                        ++span_count;
-                        //Нахожу расстояние между соседними остановками
-                        //Расстояние в метрах, а скорость в км/час, а время суммарное должно быть в минутах 
-                        
-                        road_dist_summ += catalogue_.GetRoadDist((**stop_iter).name,(**stop_iter_to).name);
-                        
-                        //нахождение времени на преодаление расстояния между остановками
-                        double time_between_stop = road_dist_summ/bus_velocity_ + bus_wait_time_;
-                        size_t from = stop_vertex_num_.at((**stop_iter_from).name);
-                        size_t to = stop_vertex_num_.at((**stop_iter_to).name);
-                        graph::Edge edge(from, to , RouteTime{bus ,time_between_stop, span_count});   
-                        graph_->AddEdge(edge);                    
-                        stop_iter = stop_iter_to;
-                    }
-                }
-                
-            }
-            else{
-                
-                for (auto stop_iter_from = route->stops.begin(); stop_iter_from != route->stops.begin() + stop_count/2 + 1; stop_iter_from+=1){
-                    double road_dist_summ=0;
-                    int span_count = 0;
-                    auto stop_iter = stop_iter_from;
-                    for (auto stop_iter_to = stop_iter_from+1; stop_iter_to != route->stops.begin() + stop_count/2 + 1; stop_iter_to += 1){
-                        ++span_count;                        
-                        road_dist_summ += catalogue_.GetRoadDist((**stop_iter).name,(**stop_iter_to).name);
-                        double time_between_stop = road_dist_summ/bus_velocity_ + bus_wait_time_;
-                        size_t from = stop_vertex_num_.at((**stop_iter_from).name);
-                        size_t to = stop_vertex_num_.at((**stop_iter_to).name);
-                        graph::Edge edge(from, to, RouteTime{bus, time_between_stop, span_count}); 
-                        graph_->AddEdge(edge);
-                        stop_iter = stop_iter_to;
-                    }
-                }
-
-                for (auto stop_iter_from = route->stops.begin() + stop_count/2; stop_iter_from != route->stops.end(); stop_iter_from += 1){
-                    double road_dist_summ=0;
-                    int span_count = 0;
-                    auto stop_iter=stop_iter_from;
-                    for (auto stop_iter_to = stop_iter_from+1; stop_iter_to != route->stops.end(); stop_iter_to += 1){
-                        ++span_count;
-                        road_dist_summ += catalogue_.GetRoadDist((**stop_iter).name,(**stop_iter_to).name);
-                        double time_between_stop = road_dist_summ/bus_velocity_ + bus_wait_time_;
-                        size_t from = stop_vertex_num_.at((**stop_iter_from).name);
-                        size_t to = stop_vertex_num_.at((**stop_iter_to).name);
-                        graph::Edge edge(from, to, RouteTime{bus ,time_between_stop, span_count});
-                        graph_->AddEdge(edge);
-                        stop_iter = stop_iter_to;
-                    }
-                }
-            } 
+            GreateAdgeForRoute( bus,is_round);
         }
         
         //Создаю в динамической памяти объект клсса роутер
@@ -145,51 +110,5 @@ namespace transport_router{
     
     
           
-    void JsonBuildForRoute(json::Builder& answer,
-                           const RouteInfoTranslete& optimal_route,
-                           int request_id){
-        
-        const auto& route_edges_inform = optimal_route.route_edges_inform;
-        if(optimal_route.time==0){           
-            answer.StartDict().
-            Key("request_id").Value(request_id).
-            Key("total_time").Value(optimal_route.time).
-            Key("items").StartArray().
-            EndArray().    
-            EndDict();            
-        }  
-        else if(optimal_route.time==-1){
-            answer.StartDict().
-                            Key("request_id").Value(request_id).
-                            Key("error_message").Value("not found").
-                            EndDict();
-        }
-        else{ 
-            answer.StartDict();
-            answer.Key("request_id").Value(request_id);                
-            answer.Key("total_time").Value(optimal_route.time);
-            answer.Key("items").StartArray(); 
-            for(auto iter = route_edges_inform.begin(); iter != route_edges_inform.end(); ++iter){
-                double time_summ_bus_stop = (**iter).weight.time_between_stop_; 
-                double time_on_bus = time_summ_bus_stop - optimal_route.wait_time;
-                int edge_id = (**iter).from;
-                int span_count =(**iter).weight.span_count_; 
-                std::string stop_bus =  optimal_route.vertex_num_stop.at(edge_id);  
-                std::string bus = (**iter).weight.bus_or_wait_;
-                answer.StartDict().
-                    Key("type"s).Value("Wait").
-                    Key("stop_name").Value(stop_bus).
-                    Key("time").Value(optimal_route.wait_time).
-                    EndDict();
-                answer.StartDict().
-                    Key("bus").Value(bus).
-                    Key("span_count").Value(span_count).
-                    Key("time").Value(time_on_bus).
-                    Key("type").Value("Bus").   
-                    EndDict(); 
-            }             
-            answer.EndArray();
-            answer.EndDict();            
-            }
-        }
+    
 }

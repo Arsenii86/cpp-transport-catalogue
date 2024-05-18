@@ -4,6 +4,54 @@
 #include <iostream>
 namespace json_reader{
     
+void JsonBuildForRoute(json::Builder& answer,
+                           const transport_router::RouteInfoTranslete& optimal_route,
+                           int request_id){
+        using namespace std::literals;
+        const auto& route_edges_inform = optimal_route.route_edges_inform;
+        if(optimal_route.time==0){           
+            answer.StartDict().
+            Key("request_id").Value(request_id).
+            Key("total_time").Value(optimal_route.time).
+            Key("items").StartArray().
+            EndArray().    
+            EndDict();            
+        }  
+        else if(optimal_route.time==-1){
+            answer.StartDict().
+                            Key("request_id").Value(request_id).
+                            Key("error_message").Value("not found").
+                            EndDict();
+        }
+        else{ 
+            answer.StartDict();
+            answer.Key("request_id").Value(request_id);                
+            answer.Key("total_time").Value(optimal_route.time);
+            answer.Key("items").StartArray(); 
+            for(auto iter = route_edges_inform.begin(); iter != route_edges_inform.end(); ++iter){
+                double time_summ_bus_stop = (**iter).weight.time_between_stop_; 
+                double time_on_bus = time_summ_bus_stop - optimal_route.wait_time;
+                int edge_id = (**iter).from;
+                int span_count =(**iter).weight.span_count_; 
+                std::string stop_bus =  optimal_route.vertex_num_stop.at(edge_id);  
+                std::string bus = (**iter).weight.bus_or_wait_;
+                answer.StartDict().
+                    Key("type"s).Value("Wait").
+                    Key("stop_name").Value(stop_bus).
+                    Key("time").Value(optimal_route.wait_time).
+                    EndDict();
+                answer.StartDict().
+                    Key("bus").Value(bus).
+                    Key("span_count").Value(span_count).
+                    Key("time").Value(time_on_bus).
+                    Key("type").Value("Bus").   
+                    EndDict(); 
+            }             
+            answer.EndArray();
+            answer.EndDict();            
+            }
+        }    
+    
 svg::Color ToRgbOrRgba(json:: Node node){
 		svg::Color  color;
 	            if(node.IsString()){
