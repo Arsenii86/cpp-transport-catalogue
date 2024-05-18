@@ -4,14 +4,14 @@
 #include "router.h"
 #include <unordered_map>
 #include <map>
+#include <memory>
 #include <iterator>
 #include <algorithm>
 #include <numeric>
 #include <iterator>
-////////
 #include "json_builder.h"
 #include <iostream>
-////////
+
 
 namespace transport_router{
 using namespace std::literals;
@@ -44,70 +44,64 @@ using namespace std::literals;
     
    
     struct RouteInfoTranslete{
-        double time_ = 0.0;
-        std::vector<const graph::Edge<transport_router::RouteTime>*> route_edges_inform_;
+        double time = 0.0;
+        int wait_time =0;
+        std::vector<const graph::Edge<transport_router::RouteTime>*> route_edges_inform;
+        const std::unordered_map<size_t,std::string>& vertex_num_stop; 
+            
+        RouteInfoTranslete() = delete;
         
-        RouteInfoTranslete() = default;
-        RouteInfoTranslete(double time,const std::vector<const graph::Edge<transport_router::RouteTime>*>& route_edges_inform):time_(time),route_edges_inform_(std::move(route_edges_inform)){};
+        RouteInfoTranslete(double all_route_time,
+                           int stop_time, 
+                           const std::vector<const graph::Edge<transport_router::RouteTime>*>& route_edges,
+                           const std::unordered_map<size_t,std::string>& vertex_stop):time(all_route_time),
+                                                                                    wait_time(stop_time), 
+                                                                                    route_edges_inform(std::move(route_edges)),
+                                                                                    vertex_num_stop(vertex_stop){};
     };
-
     
     void JsonBuildForRoute(json::Builder& answer,
                            const RouteInfoTranslete& optimal_route,
-                           const std::unordered_map<size_t,std::string>& VertexNum_Stop,
-                           int bus_wait_time,
                            int request_id);
     
-    
-    
-    
-  class TransportRouter{
-      //итерпритатор вершин,представляющий из себя словарь с парой "номер	вершины - название остановки"
-      std::unordered_map<size_t,std::string> vertex_num_stop_;
-      //итерпритатор вершин,представляющий из себя словарь с парой "название остановки - номер	вершины"
-      std::unordered_map<std::string,size_t> stop_vertex_num_; 
-      //ссылка на транспортный каталог
-      transport_directory::tr_cat::TransportCatalogue& catalogue_;
+    class TransportRouter{
+      
+    //Итерпритатор вершин,представляющий из себя словарь с парой "номер	вершины - название остановки"
+        std::unordered_map<size_t,std::string> vertex_num_stop_;
+      
+    //Итерпритатор вершин,представляющий из себя словарь с парой "название остановки - номер	вершины"
+        std::unordered_map<std::string,size_t> stop_vertex_num_; 
+      
+      //Ссылка на транспортный каталог
+        transport_directory::tr_cat::TransportCatalogue& catalogue_;
+      
       //время ожидания на остновке
-      int bus_wait_time_;
-      //скорость передвижени автобуса
-      double bus_velocity_;    
+        int bus_wait_time_;
+      
+      //Скорость передвижени автобуса
+        double bus_velocity_; 
+      
       //Создал объект графа
-      graph::DirectedWeightedGraph<RouteTime>* graph_;
+        std::unique_ptr<graph::DirectedWeightedGraph<RouteTime>> graph_;
+      
       //Создал указатель на объект router
-      graph::Router<RouteTime>* router_;
+        std::unique_ptr<graph::Router<RouteTime>> router_;
       
-      void GreateGrafAndRoute(const std::vector<std::pair<std::string,bool>>& bus_all);
+        void GreateGraphAndRoute(const std::vector<std::pair<std::string,bool>>& bus_all);
       
-      public: 
-    TransportRouter()=delete;
+    public: 
+        TransportRouter()=delete;
       
-    TransportRouter( transport_directory::tr_cat::TransportCatalogue& catalogue, 
+        TransportRouter( transport_directory::tr_cat::TransportCatalogue& catalogue, 
                     const RouteSetings& route_settings,
                     const std::vector<std::pair<std::string,bool>>& bus_all
                    );
       
         
       
-    RouteInfoTranslete FindOptimalRoute(const std::string& stop_from,const std::string& stop_to) const;
-      
-    int GetWaitTime() const {
-        return bus_wait_time_;
-    }
-     
-    const std::unordered_map<size_t,std::string>& GetVertexStop() const{
-        return vertex_num_stop_;
-    }
-     
-      
-    ~  TransportRouter(){
-        delete router_; 
-        delete graph_;
-        router_ = nullptr;
-        graph_ = nullptr;
-    }
-      
-  };  
+        RouteInfoTranslete FindOptimalRoute(const std::string_view stop_from,const std::string_view stop_to) const;      
+        
+    };  
       
     
     

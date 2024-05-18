@@ -168,10 +168,8 @@ json::Node GetStatInfo(const json::Dict& requests,
                         }
                         else{ 
                             transport_router::RouteInfoTranslete optimal_route = tr_rout.FindOptimalRoute(stop_name_from, stop_name_to);
-                            int bus_wait_time = tr_rout.GetWaitTime();
-                            const std::unordered_map<size_t,std::string>& vertex_num_stop = tr_rout. GetVertexStop(); 
-                            //std::cout<<"ok"<<std::endl;                            
-                            JsonBuildForRoute(answer, optimal_route, vertex_num_stop, bus_wait_time, request_id);
+                                              
+                            JsonBuildForRoute(answer, optimal_route, request_id);
                         }
                     }
                 }  
